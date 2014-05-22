@@ -19,9 +19,17 @@ typedef struct KEYFILE_S {
 	uint8_t* data;
 } keyfile_t;
 
-/** Call these before and after encryption to
- *  generate the keyfile, or you won't be able
- *  to decrypt it!
+//-- GENERAL FUNCTIONS --//
+
+/* Call these before and after encryption to
+ * generate the keyfile, or you won't be able
+ * to decrypt it!
+ */
+
+/** Begin a new set of enryption operations.
+ *  
+ *  @return 0 if successful, or 1 if you did
+ *          not end the previous encryption.
  */
 void begin_encryption();
 
@@ -43,10 +51,33 @@ int finish_encryption();
  */
 keyfile_t generate_keyfile(int index);
 
+//-- ENCRYPTION METHODS --//
+
 /** Uses index i in data as encryption key
  *  by adding (i % mod_val) to data[i]
  *  
  *  @param uint8_t* data - the data to encrypt
+ *  @param int mod_val - modulus value for index
  */
 void encrypt_counter(uint8_t* data, int mod_val);
 
+/** A more advanced form of encrypt_counter.
+ *  
+ *  Allows you to choose addition or subtraction
+ *  and to choose a multiplier for index
+ * 
+ *  @param uint8_t* data - the data to encrypt
+ *  @param int mod_val - modulus value for index
+ *  @param char method - '+' or '-'
+ *  @param int i_mult - index multiplier
+ */
+void encrypt_complex_counter(uint8_t* data, int mod_val,
+							 char method, int i_mult);
+
+/** Uses matrix encryption. Shuffles data as if it
+ *  were reading columns from a row-oriented matrix
+ *  of the data.
+ * 
+ * @param xsize - number of columns
+ */
+void encrypt_matrix(uint8_t* data, int xsize);
