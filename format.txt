@@ -1,0 +1,128 @@
+//-- SACKFILE FILE FORMAT SPECIFICATION DOCUMENT --//
+//--                 VERSION 0                   --//
+
+:: HEADER INFORMATION ::
+
+[8 Bytes	- SACKFILE]
+[2 Bytes	- Version]
+[2 Bytes	- Flags]
+[20 Bytes	- Reserved for future versions]
+
+:: FLAGS ::
+
+ponmlkji-hgfedcba
+
+a - Content is mangled				> IS_MANGLED
+b - Content is LZO compressed			> USE_LZO
+c - Content is BZ2 compressed			> USE_BZ2
+d - Uses 'fast access' organization		> FAST_ACCESS
+e - Contains potentially offensive content	> IS_NSFW
+f - Reserved					> RESERVED
+g - Reserved					> RESERVED
+h - Reserved					> RESERVED
+i - Reserved					> RESERVED
+j - Reserved					> RESERVED
+k - Reserved					> RESERVED
+l - Reserved					> RESERVED
+m - Reserved					> RESERVED
+n - Reserved					> RESERVED
+o - Reserved					> RESERVED
+p - Reserved					> RESERVED
+
+:: HEADER NOTES ::
+
+Some flags are mutually exlcusive, such as USE_LZO
+and USE_BZ2. In the event of two mutually exclusive
+flags being active simultaneously the system is to
+select the flag with the higher priority
+
+:: EXCLUSIVITY AND PRIORITY OF FLAGS ::
+
+FLAG		PRIORITY	CONFLICTS WITH
+IS_MANGLED	10		
+USE_LZO		5		USE_BZ2
+USE_BZ2		0		USE_LZO, FAST_ACCESS
+FAST_ACCESS	5		USE_BZ2
+
+:: LOOKUP TABLE INFORMATION ::
+
+Data content is cordoned into 'blocks' to allow
+'fast access' organization to be enacted. In the
+case that 'fast access' is not enabled, there will
+only be a single 'block'. If 'fast access' IS
+enabled, there may be many blocks (to allow smaller
+file sizes). In addition, each 'block' is
+treated as a seperate area of data, and in the
+event of data loss a corrupted block may be
+ignored and still allow the rest of the file to
+extract.
+
+After the main file header there is a block index
+table, and a file index table for each block.
+
+File will look like:
+[Header|Block1Header|B1FileTable|Block2Header...|Block1Data|Block2Data...]
+
+[32 Bytes	- BLOCK HEADER] (fast access)
+	[8 Bytes - CRC Checksum]
+	[8 Bytes - Chunk Size]
+	[8 Bytes - Number of Files]
+	[8 Bytes - Block Offset]
+
+[32 Bytes	- BLOCK HEADER] (non-fast access)
+	[8 Bytes - CRC Checksum]
+	[8 Bytes - Block Size]
+	[8 Bytes - Number of Files]
+	[8 Bytes - Block Offset]
+
+[BLOCK FILE INDEX TABLE]
+	[8 Bytes - File Size]
+	[8 Bytes - File Offset {from start of block data}]
+	[1 Byte  - Filename Encoding]
+		0 - US-ASCII
+		1 - UTF-8
+		2 - UTF-16
+		3 - UTF-32
+		4 - GB18030
+		5 - OTHER 8 BIT
+		6 - OTHER 16 BIT
+		7 - OTHER 32 BIT
+		8 - OTHER 64 BIT
+	[1 Byte  - Originating System]
+		0 - UNIX
+		1 - MACOS/UNIX
+		2 - LINUX/UNIX
+		3 - MICROSOFT WINDOWS
+		4 - Reserved
+		5 - Reserved
+		6 - Reserved
+		7 - Reserved
+		8 - OTHER
+	[2 Bytes - File Attributes/Permissions]
+		:: FLAGS
+		
+		abcdefgh-ijklmnop-qrstuvwx-yz123456
+		
+		On Unix:
+		x-6 are the permission flags (rwx-rwx-rwx)
+		{ admin - group - user }
+		
+		On Windows:
+		x-6 are the permission flags (rwx-rwx-rwx-rwx)
+		{ system - admin - user }
+		t is the read-only flag
+		s is the hidden flag
+		
+		All other flags reserved for future versions
+	[4 Bytes - File URI Length]
+	[4 Bytes - File Modified Date]
+	[4 Bytes - File Created Date]
+	[Variable Length - FILE URI]
+
+After the Block and Block File tables, immediately begin
+writing blocks. This area contains no metadata, you must
+use the previous information tables to extract data.
+
+When 'fast access' is enabled, there may be 0
+padding to fill each file chunk, otherwise there will
+be no padding before the next block file.
